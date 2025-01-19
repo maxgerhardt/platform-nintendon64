@@ -1,0 +1,26 @@
+{
+    "build": {
+        "cpu": "vr4300",
+        "extra_flags": "-DN64",
+        "f_cpu": "93750000L"
+    },
+    "debug": {
+        "onboard_tools": [
+            "ares"
+        ]
+    },
+    "frameworks": [
+        "libdragon"
+    ],
+    "name": "Nintendo N64",
+    "upload": {
+        "maximum_ram_size": 4194304,
+        "maximum_size": 8388608,
+        "protocol": "ares",
+        "protocols": [
+            "ares"
+        ]
+    },
+    "url": "https://en.wikipedia.org/wiki/Nintendo_64",
+    "vendor": "Nintendo"
+}

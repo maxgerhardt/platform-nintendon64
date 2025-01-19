@@ -1,0 +1,52 @@
+{
+  "name": "nintendon64",
+  "title": "Nintendo N64",
+  "description": "The Nintendo 64 is a 64-bit home video game console released by Nintendo in 1996, featuring a custom R4300i CPU, an advanced Reality Coprocessor for 3D graphics and audio, and cartridge-based game storage.",
+  "homepage": "",
+  "license": "Apache-2.0",
+  "keywords": [
+    "dev-platform",
+    "MIPS",
+    "R4300i",
+    "Nintendo",
+    "N64"
+  ],
+  "engines": {
+    "platformio": "^6"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/maxgerhardt/platform-nintendon64.git"
+  },
+  "version": "1.0.0",
+  "frameworks": {
+    "libdragon": {
+      "package": "framework-libdragon",
+      "script": "builder/frameworks/libdragon.py"
+    }
+  },
+  "packages": {
+    "toolchain-gccmips64": {
+      "type": "toolchain",
+      "owner": "platformio",
+      "version": "https://github.com/maxgerhardt/pio-toolchain-mips64.git#windows_x64"
+    },
+    "framework-libdragon": {
+      "type": "framework",
+      "optional": true,
+      "owner": "platformio",
+      "version": "https://github.com/maxgerhardt/libdragon.git"
+    },
+    "tool-n64": {
+      "type": "toolchain",
+      "owner": "platformio",
+      "version": "https://github.com/maxgerhardt/pio-tool-n64.git#windows_x64"
+    },
+    "tool-ares": {
+      "type": "uploader",
+      "optional": false,
+      "owner": "platformio",
+      "version": "https://github.com/maxgerhardt/pio-ares.git#windows_x64"
+    }
+  }
+}
