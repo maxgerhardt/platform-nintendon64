@@ -27,8 +27,9 @@ env.Append(
         "-x", "assembler-with-cpp",
     ],
 
+    # can't yet be Os because of https://github.com/DragonMinded/libdragon/pull/669
     CCFLAGS=[
-        "-Os",  # optimize for size
+        "-O2",  # optimize for size
         "-ffunction-sections",  # place each function in its own section
         "-fdata-sections",
         "-falign-functions=32",
@@ -45,8 +46,8 @@ env.Append(
     ],
 
     LINKFLAGS=[
-        "-Os",
-        "-Wl,--gc-sections,--relax",
+        "-O2",
+        "-Wl,--gc-sections"#,--relax",
     ],
 
     LIBS=["c", "gcc", "m", "stdc++"]
