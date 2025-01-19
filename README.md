@@ -1,4 +1,4 @@
-# ST STM32: development platform for [PlatformIO](https://platformio.org)
+# Nintendo N64: development platform for [PlatformIO](https://platformio.org)
 
 [![Build Status](https://github.com/maxgerhardt/platform-nintendon64/workflows/Examples/badge.svg)](https://github.com/maxgerhardt/platform-nintendon64/actions)
 
