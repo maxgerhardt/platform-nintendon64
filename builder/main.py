@@ -26,24 +26,6 @@ env = DefaultEnvironment()
 platform = env.PioPlatform()
 board = env.BoardConfig()
 
-import json
-from platformio.public import ProjectConfig 
-print("PROJECT CONFIG: ")
-print(json.dumps(ProjectConfig.lint()))
-
-config = ProjectConfig()
-envs = config.envs()
-
-print(json.dumps(dict(
-  envs=envs,
-  default_envs=config.default_envs(),
-  default_env=config.get_default_env(),
-  env_platforms={env:config.get(f"env:{env}", "platform", default=None) for env in envs}
-)))
-
-from platformio.public import get_project_watch_lib_dirs
-print(json.dumps(get_project_watch_lib_dirs()))
-
 env.Replace(
     AR="mips64-elf-gcc-ar",
     AS="mips64-elf-as",
