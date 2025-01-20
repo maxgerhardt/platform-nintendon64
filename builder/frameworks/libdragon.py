@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os, re, sys
+from pathlib import Path
 from SCons.Script import DefaultEnvironment, Builder, AlwaysBuild
 
 env = DefaultEnvironment()
@@ -91,21 +92,27 @@ if not board.get("build.ldscript", ""):
 
 libs = []
 
+# Automatically find all libdragon source files, except the Audio library, which is special.
+libdragon_src_dir = Path(os.path.join(FRAMEWORK_DIR, "src"))
 libdragon_srcs = [
-  "n64sys.c", "interrupt.c", "backtrace.c", "fmath.c", "inthandler.S", "entrypoint.S", "debug.c", "debugcpp.c", 
-  "usb.c", "libcart/cart.c", "fatfs/ff.c", "fatfs/ffunicode.c", "rompak.c", "dragonfs.c", "audio.c", "display.c", 
-  "surface.c", "console.c", "asset.c", "compress/lzh5.c", "compress/lz4_dec.c", "compress/lz4_dec_fast.c", "compress/ringbuf.c", 
-  "compress/aplib_dec_fast.c", "compress/aplib_dec.c", "compress/shrinkler_dec_fast.c", "compress/shrinkler_dec.c", 
-  "joybus.c", "controller.c", "rtc.c", "eeprom.c", "eepromfs.c", "mempak.c", "tpak.c", "graphics.c", "rdp.c", "rsp.c", 
-  "rsp_crash.S", "inspector.c", "sprite.c", "dma.c", "timer.c", "exception.c", "do_ctors.c", "audio/mixer.c", 
-  "audio/samplebuffer.c", "audio/rsp_mixer.c", "audio/wav64.c", "audio/wav64_vadpcm.c", "audio/xm64.c", 
-  "audio/libxm/play.c", "audio/libxm/context.c", "audio/libxm/load.c", "audio/ym64.c", "audio/ay8910.c", "rspq/rspq.c", 
-  "rspq/rsp_queue.c", "rdpq/rdpq.c", "rdpq/rsp_rdpq.c", "rdpq/rdpq_debug.c", "rdpq/rdpq_tri.c", "rdpq/rdpq_rect.c", "rdpq/rdpq_mode.c", 
-  "rdpq/rdpq_sprite.c", "rdpq/rdpq_tex.c", "rdpq/rdpq_attach.c", "dlfcn.c"
+        str(file.relative_to(libdragon_src_dir))  for file in libdragon_src_dir.rglob('*') 
+        if file.suffix in {'.c', '.cpp', '.S'} and 
+        'audio' not in (file.relative_to(libdragon_src_dir).parts[:1]) and 
+        file.name != 'debugcpp.cpp']
+
+# we musn't build libopus.c, omongst other files. it weirdly #include c files. Only build these for now.
+audio_lib = [
+  "audio/mixer.c", "audio/samplebuffer.c", "audio/rsp_mixer.c", "audio/wav64.c",
+  "audio/wav64_vadpcm.c", "audio/xm64.c", "audio/libxm/play.c", "audio/libxm/context.c",
+  "audio/libxm/load.c", "audio/ym64.c", "audio/ay8910.c"
 ]
 
 # RSP assembly sources have to be built differently, filter them out at this stage
-libdragon_srcs = [x for x in libdragon_srcs if (not (x.startswith("rsp") and x.endswith(".S")))]
+def is_rsp_file(file: str) -> bool:
+    return Path(file).name.startswith("rsp") and file.endswith(".S")
+rsp_srcs = [x for x in libdragon_srcs if is_rsp_file(x)]
+libdragon_srcs = [x for x in libdragon_srcs if not is_rsp_file(x)]
+libdragon_srcs += audio_lib
 
 libs.append(
    env.BuildLibrary(
@@ -247,7 +254,6 @@ rsp_env.Replace(
     ]
 )
 
-rsp_srcs = ["rsp_crash.S"]
 # get RSP sources into the build system. Sadly we must rebuild the ".o" entirely because
 # we need to link it as a fully fledged ELF file, then extract .data and .text sections out of it,
 # and then repackage it, with changed symbol names, into an elf / object file that will finally be linked.
