@@ -139,7 +139,6 @@ def post_process_rsp_file(source, target, env):
     target_textsection = os.path.splitext(str(target_file))[0] + ".text"
     target_datasection = os.path.splitext(str(target_file))[0] + ".data"
     symprefix = str(os.path.splitext(str(target_file))[0]).replace(".", "_").replace("/", "_").replace("\\", "_")
-    # print("POST PROCESS RSP for SRC " + str(src_file) + " TARGET " + str(target_file))
     actions = [
         env.VerboseAction(" ".join([
             "$CC",
@@ -234,14 +233,8 @@ def post_process_rsp_file(source, target, env):
     ]    
     env.Execute(actions)
 
-def build_rsp_file(env, node):
-    global rsp_env
-    print("Building: " + str(node))
-    env.AddPostAction(node, post_process_rsp_file)
-    return rsp_env.Object(node)
-
-# Somehow only works for files in the user's project directory
-env.AddBuildMiddleware(build_rsp_file, "rsp*.S")
+# Add a new builder. After many tries with post actions, this actually works.
+env.Append(BUILDERS={'CustomRspBuilder': Builder(action=post_process_rsp_file, suffix=".o")})
 
 rsp_env = env.Clone()
 rsp_env.Replace(
@@ -253,6 +246,13 @@ rsp_env.Replace(
         "-Wa,--fatal-warnings",
     ]
 )
+
+def build_rsp_file(env, node):
+    ret = rsp_env.CustomRspBuilder(node)
+    return ret
+
+# Somehow only works for files in the user's project directory
+env.AddBuildMiddleware(build_rsp_file, "**/rsp*.S")
 
 # get RSP sources into the build system. Sadly we must rebuild the ".o" entirely because
 # we need to link it as a fully fledged ELF file, then extract .data and .text sections out of it,
