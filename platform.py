@@ -57,12 +57,19 @@ class Nintendon64Platform(PlatformBase):
         ]
         init_cmds = [
             "set mem inaccessible-by-default off",
+            # ares automatically reports arch = mips:4000
             #"set arch mips:4300",
             "set remotetimeout unlimited",
             "target remote $DEBUG_PORT",
             "$INIT_BREAK",
+            # don't load the executable into the emulator because it's already started with the ROM
             #"$LOAD_CMDS",
+            "info functions", # wtf. it needs that so that symbols are located correctly to their source files
         ]
+        libdragon_path = self.get_package_dir("framework-libdragon") or ""
+        if libdragon_path != "":
+            init_cmds.insert(0, 'set substitute-path libdragon "%s"' % libdragon_path.replace("\\","/"))
+
         for link in ["ares"]:
             if link not in upload_protocols or link in debug["tools"]:
                 continue

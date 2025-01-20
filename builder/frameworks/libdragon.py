@@ -28,19 +28,13 @@ assert os.path.isdir(FRAMEWORK_DIR)
 
 flatten_cppdefines = env.Flatten(env['CPPDEFINES'])
 
-# update progsize expression to also check for bootloader.
-env.Replace(
-    SIZEPROGREGEXP=r"^(?:\.boot2|\.text|\.data|\.rodata|\.text.align)\s+(\d+).*"
-)
-
 env.Append(
     ASFLAGS=env.get("CCFLAGS", [])[:],
 )
 
 env.Append(
     CCFLAGS=[
-        "-g", # debug symbols by default (needed for symbol generation)
-        "-g3",
+        "-g3", # all debug symbols by default (needed for symbol generation)
         "-ggdb3",
         "-ffast-math",
         "-ftrapping-math",
@@ -57,6 +51,10 @@ env.Append(
         "-Wno-error=unused-label",
         "-Wno-error=unused-local-typedefs",
         "-Wno-error=unused-const-variable",
+        # This makes it such that GDB can't find the file path again
+        # unless we do set substitute-path libdragon FRAMEWORK_DIR as GDB cmd,
+        # which we do in platform.py
+        # This means that the binary itself will still have the short paths.
         '-ffile-prefix-map="%s"=libdragon' % FRAMEWORK_DIR 
     ],
 
@@ -69,7 +67,6 @@ env.Append(
     ],
 
     CPPPATH=[
-        # ToDo fill in libdragon paths
         os.path.join(FRAMEWORK_DIR, "include"),
         os.path.join(FRAMEWORK_DIR, "src"),
     ],
@@ -110,14 +107,12 @@ libdragon_srcs = [
 # RSP assembly sources have to be built differently, filter them out at this stage
 libdragon_srcs = [x for x in libdragon_srcs if (not (x.startswith("rsp") and x.endswith(".S")))]
 
-#libs.append(
-#    env.BuildLibrary(
-env.BuildSources(
+libs.append(
+   env.BuildLibrary(
         os.path.join("$BUILD_DIR", "FrameworkLibdragon"),
         os.path.join(FRAMEWORK_DIR, "src"),
         "-<*> " + " ".join(["+<%s>" % src for src in libdragon_srcs])
-)
-#    ))
+))
 
 
 libs.append(
@@ -137,7 +132,7 @@ def post_process_rsp_file(source, target, env):
     target_textsection = os.path.splitext(str(target_file))[0] + ".text"
     target_datasection = os.path.splitext(str(target_file))[0] + ".data"
     symprefix = str(os.path.splitext(str(target_file))[0]).replace(".", "_").replace("/", "_").replace("\\", "_")
-    print("POST PROCESS RSP for SRC " + str(src_file) + " TARGET " + str(target_file))
+    # print("POST PROCESS RSP for SRC " + str(src_file) + " TARGET " + str(target_file))
     actions = [
         env.VerboseAction(" ".join([
             "$CC",
@@ -157,7 +152,7 @@ def post_process_rsp_file(source, target, env):
             "-o",
             '"%s"' % target_elf,
             '"%s"' % str(src_file)
-        ]), "Relinking RSP ELF"),
+        ]), "Relinking RSP ELF " + target_elf),
         # make a copy of the original stripped elf because the compress is in-place
         #Copy(target_elf, target_file),
         env.VerboseAction(" ".join([
@@ -168,7 +163,7 @@ def post_process_rsp_file(source, target, env):
             ".text",
             '"%s"' % target_elf,
             '"%s"' % (target_textsection + ".bin")
-        ]), "Generating text segment for " + str(target_file)),
+        ]), "Generating text segment " + (target_textsection + ".bin")),
         env.VerboseAction(" ".join([
             "$OBJCOPY",
             "-O",
@@ -177,7 +172,7 @@ def post_process_rsp_file(source, target, env):
             ".data",
             '"%s"' % target_elf,
             '"%s"' % (target_datasection + ".bin")
-        ]), "Generating data segment for " + str(target_file)),
+        ]), "Generating data segment " + (target_datasection + ".bin")),
         env.VerboseAction(" ".join([
             "$OBJCOPY",
             "-I",
@@ -196,10 +191,9 @@ def post_process_rsp_file(source, target, env):
             ".data=8",
             "--rename-section",
             ".text=.data",
-            target_textsection + ".bin",
-            target_textsection + ".o"
-        ]), "Generating textsection object " + str(target_file)),
-
+            '"%s"' % (target_textsection + ".bin"),
+            '"%s"' % (target_textsection + ".o")
+        ]), "Generating textsection object " + target_textsection + ".o"),
         env.VerboseAction(" ".join([
             "$OBJCOPY",
             "-I",
@@ -218,40 +212,26 @@ def post_process_rsp_file(source, target, env):
             ".data=8",
             "--rename-section",
             ".text=.data",
-            target_datasection + ".bin",
-            target_datasection + ".o"
-        ]), "Generating datasection object " + str(target_file)),
+            '"%s"' % (target_datasection + ".bin"),
+            '"%s"' % (target_datasection + ".o")
+        ]), "Generating datasection object " + target_datasection + ".o"),
         # final relink to object file
         env.VerboseAction(" ".join([
             "mips64-elf-ld",
             "-relocatable",
-            target_textsection + ".o",
-            target_datasection + ".o",
+            '"%s"' % (target_textsection + ".o"),
+            '"%s"' % (target_datasection + ".o"),
             "-o",
             '"%s"' % str(target_file)
         ]), "Relinking object file " + str(target_file)),
-
     ]    
     env.Execute(actions)
 
-# TODO not yet working, needs same post processing step
 def build_rsp_file(env, node):
+    global rsp_env
     print("Building: " + str(node))
-    #env.AddPostAction("$BUILD_DIR/src/main.cpp.o", post_process_rsp_file)
-    return env.Object(node,
-        AS="mips64-elf-gcc",
-        LINK="mips64-elf-gcc",
-        ASFLAGS=[
-            "-march=mips1",
-            "-mabi=32",
-            "-Wa,--fatal-warnings",
-            "-nostartfiles",
-            "-L",
-            os.path.join(FRAMEWORK_DIR),
-            "-Wl,-Trsp.ld",
-            "-Wl,--gc-sections"
-        ]
-    )
+    env.AddPostAction(node, post_process_rsp_file)
+    return rsp_env.Object(node)
 
 # Somehow only works for files in the user's project directory
 env.AddBuildMiddleware(build_rsp_file, "rsp*.S")
@@ -264,18 +244,6 @@ rsp_env.Replace(
         "-march=mips1",
         "-mabi=32",
         "-Wa,--fatal-warnings",
-        "-nostartfiles",
-        "-L",
-        os.path.join(FRAMEWORK_DIR),
-        "-Wl,-Trsp.ld",
-        "-Wl,--gc-sections"
-    ],
-    LINKFLAGS=[
-        "-nostartfiles",
-        "-L",
-        os.path.join(FRAMEWORK_DIR),
-        "-Wl,-Trsp.ld",
-        "-Wl,--gc-sections"
     ]
 )
 
