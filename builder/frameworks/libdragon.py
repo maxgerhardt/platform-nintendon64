@@ -102,17 +102,17 @@ libdragon_srcs = [
 
 # we musn't build libopus.c, omongst other files. it weirdly #include c files. Only build these for now.
 audio_lib = [
-  "audio/mixer.c", "audio/samplebuffer.c", "audio/rsp_mixer.c", "audio/wav64.c",
+  "audio/mixer.c", "audio/samplebuffer.c", "audio/rsp_mixer.S", "audio/wav64.c",
   "audio/wav64_vadpcm.c", "audio/xm64.c", "audio/libxm/play.c", "audio/libxm/context.c",
   "audio/libxm/load.c", "audio/ym64.c", "audio/ay8910.c"
 ]
+libdragon_srcs += audio_lib
 
 # RSP assembly sources have to be built differently, filter them out at this stage
 def is_rsp_file(file: str) -> bool:
     return Path(file).name.startswith("rsp") and file.endswith(".S")
 rsp_srcs = [x for x in libdragon_srcs if is_rsp_file(x)]
 libdragon_srcs = [x for x in libdragon_srcs if not is_rsp_file(x)]
-libdragon_srcs += audio_lib
 
 libs.append(
    env.BuildLibrary(
@@ -151,7 +151,7 @@ def post_process_rsp_file(source, target, env):
             "-I",
             '"%s"' % os.path.join(FRAMEWORK_DIR, "include"),
             "-L",
-            os.path.join(FRAMEWORK_DIR),
+            '"%s"' % os.path.join(FRAMEWORK_DIR),
             "-Wl,-Trsp.ld",
             "-Wl,--gc-sections",
             '-Wl,-Map="%s"' % target_map,

@@ -10,6 +10,7 @@ jobs:
         os: [windows-latest]
         #os: [ubuntu-latest, windows-latest, macos-latest]
         example:
+          - "examples/libdragon-audioplayer"
           - "examples/libdragon-controllertest"
           - "examples/libdragon-rspqdemo"
     runs-on: ${{ matrix.os }}

@@ -14,8 +14,9 @@
 
 import sys
 from platform import system
-from os import makedirs, environ
-from os.path import basename, isdir, join
+from os import makedirs, environ, listdir
+from os.path import basename, isdir, join, exists
+from pathlib import Path
 
 from SCons.Script import (ARGUMENTS, COMMAND_LINE_TARGETS, AlwaysBuild,
                           Builder, Default, DefaultEnvironment, Copy)
@@ -39,9 +40,12 @@ env.Replace(
     RANLIB="mips64-elf-gcc-ranlib",
     SIZETOOL="mips64-elf-size",
     STRIP="mips64-elf-strip",
-    N64SYM="n64sym", # this comes from tool-n64
+    N64SYM="n64sym", # these comes from tool-n64
     N64ELFCOMPRESS="n64elfcompress",
-    N64TOOL="n64tool", # this comes from tool-n64,
+    N64TOOL="n64tool",
+    MKDFSTOOL="mkdfs", # digital file system
+    N64_FS_IMAGE_NAME="fs",
+    PROJECT_DATA_DIR="assets", # folder for unconverted files
 
     ARFLAGS=["rc"],
 
@@ -124,6 +128,35 @@ env.Append(
             ]), "Building $TARGET"),
             suffix=".z64"
         ),
+        ElfToZ64WithDFS=Builder(
+            action=env.VerboseAction(" ".join([
+                "$N64TOOL",
+                "--title",
+                '"%s"' % "Controller Test",
+                "--toc",
+                "--output",
+                "$TARGET",
+                "--align",
+                "256",
+                "${SOURCES[0]}", # stripped + compressed elf file
+                "--align",
+                "8",
+                "${SOURCES[1]}", # symbol file
+                "--align",
+                "16",
+                "${SOURCES[2]}" # dfs file (filesystem)
+            ]), "Building $TARGET"),
+            suffix=".z64"
+        ),
+        DataToDfs=Builder(
+            action=env.VerboseAction(" ".join([
+                '"$MKDFSTOOL"',
+                "$TARGET",
+                "$SOURCE"
+            ]), "Building file system image from '$SOURCE' directory to $TARGET"),
+            source_factory=env.Dir,
+            suffix=".dfs"
+        )
     )
 )
 
@@ -140,12 +173,23 @@ target_elf = None
 if "nobuild" in COMMAND_LINE_TARGETS:
     target_elf = join("$BUILD_DIR", "${PROGNAME}.elf")
     target_z64 = join("$BUILD_DIR", "${PROGNAME}.z64")
+    target_dfs = join("$BUILD_DIR", "${N64_FS_IMAGE_NAME}.dfs")
 else:
     target_elf = env.BuildProgram()
     target_sym = env.ElfToSym(join("$BUILD_DIR", "${PROGNAME}"), target_elf)
     target_stripped_elf = env.ElfToStrippedElf(join("$BUILD_DIR", "${PROGNAME}"), target_elf)
     target_stripped_compressed_elf = env.StrippedElfToCompressedElf(join("$BUILD_DIR", "${PROGNAME}"), target_stripped_elf)
-    target_z64 = env.ElfToZ64(join("$BUILD_DIR", "${PROGNAME}"), [target_stripped_compressed_elf, target_sym])
+    # filesystem
+    data_dir = join(env.subst("$PROJECT_DIR"), env.subst("$PROJECT_DATA_DIR"))
+    # do we have files to build at all?
+    if exists(data_dir) and isdir(data_dir) and len(listdir(data_dir)) != 0:
+        converted_assets = []
+        asset_files = env.Glob(join("${PROJECT_DIR}", "${PROJECT_DATA_DIR}", "**/*"))
+        target_dfs = env.DataToDfs(join("$BUILD_DIR", "${N64_FS_IMAGE_NAME}"), [data_dir])
+        env.Requires(target_dfs, asset_files)
+        target_z64 = env.ElfToZ64WithDFS(join("$BUILD_DIR", "${PROGNAME}"), [target_stripped_compressed_elf, target_sym, target_dfs])
+    else:
+        target_z64 = env.ElfToZ64(join("$BUILD_DIR", "${PROGNAME}"), [target_stripped_compressed_elf, target_sym])
 
     env.Depends(target_z64, "checkprogsize")
 
