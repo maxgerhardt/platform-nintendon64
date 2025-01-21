@@ -93,20 +93,21 @@ if not board.get("build.ldscript", ""):
 libs = []
 
 # Automatically find all libdragon source files, except the Audio library, which is special.
+# We need to ignore audio/opus/* there.
 libdragon_src_dir = Path(os.path.join(FRAMEWORK_DIR, "src"))
 libdragon_srcs = [
-        str(file.relative_to(libdragon_src_dir))  for file in libdragon_src_dir.rglob('*') 
+        str(file.relative_to(libdragon_src_dir)) for file in libdragon_src_dir.rglob('*') 
         if file.suffix in {'.c', '.cpp', '.S'} and 
-        'audio' not in (file.relative_to(libdragon_src_dir).parts[:1]) and 
+        not file.relative_to(libdragon_src_dir).parts[:2] == ('audio', 'opus') and 
         file.name != 'debugcpp.cpp']
 
-# we musn't build libopus.c, omongst other files. it weirdly #include c files. Only build these for now.
-audio_lib = [
-  "audio/mixer.c", "audio/samplebuffer.c", "audio/rsp_mixer.S", "audio/wav64.c",
-  "audio/wav64_vadpcm.c", "audio/xm64.c", "audio/libxm/play.c", "audio/libxm/context.c",
-  "audio/libxm/load.c", "audio/ym64.c", "audio/ay8910.c"
-]
-libdragon_srcs += audio_lib
+# finally, we have to do a modification to build audio/libopus.c: Disable all warnings.
+def build_with_no_warnings(env, node):
+    return env.Object(
+        node,
+        CCFLAGS=env["CCFLAGS"] + ["-Wno-all"]
+    )
+env.AddBuildMiddleware(build_with_no_warnings, "**/audio/libopus.c")
 
 # RSP assembly sources have to be built differently, filter them out at this stage
 def is_rsp_file(file: str) -> bool:
