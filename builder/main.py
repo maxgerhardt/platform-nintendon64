@@ -79,20 +79,38 @@ def process_directory(target, source, env):
         shutil.rmtree(tgt_dir)
     makedirs(tgt_dir, exist_ok=True)
 
+    # Retrieve custom conversion rules from platformio.ini
+    conv_rules = env.GetProjectOption("custom_conversions")
+    custom_conversions = {}
+    if conv_rules:
+        for line in conv_rules.strip().split("\n"):
+            parts = [part.strip() for part in line.split(",")]
+            if len(parts) == 3:
+                command_template = parts[2].strip()
+                if "$SOURCE" not in command_template:
+                    command_template += " $SOURCE"
+                custom_conversions[parts[0].lower()] = (parts[1].strip(), command_template)
+
     # Custom processing logic
     for root, dirs, files in walk(src_dir):
         rel_path = relpath(root, src_dir)
         for file in files:
             src_file = join(root, file)
-            if file.lower().endswith(".xm"):
+            file_lower = file.lower()
+            if file_lower in custom_conversions:
+                target_ext, command_template = custom_conversions[file_lower]
+                tgt_file = join(tgt_dir, rel_path, file[:file.rfind(".")] + target_ext)
+                command = command_template.replace("$TARGET", tgt_file).replace("$SOURCE", src_file)
+                env.Execute(env.VerboseAction(command, f"Converting {src_file} to {tgt_file}"))
+            elif file_lower.endswith(".xm"):
                 tgt_file = join(tgt_dir, rel_path, file[:-3] + ".xm64")
                 env.Execute(env.VerboseAction(f"${{N64_AUDIOCONV}} -o {tgt_file} {src_file}",
                                               f"Converting {src_file} to {tgt_file}"))
-            elif file.lower().endswith(".ym"):
+            elif file_lower.endswith(".ym"):
                 tgt_file = join(tgt_dir, rel_path, file[:-3] + ".ym64")
                 env.Execute(env.VerboseAction(f"${{N64_AUDIOCONV}} -o {tgt_file} {src_file}",
                                               f"Converting {src_file} to {tgt_file}"))
-            elif file.lower().endswith(".wav"):
+            elif file_lower.endswith(".wav"):
                 tgt_file = join(tgt_dir, rel_path, file[:-4] + ".wav64")
                 env.Execute(env.VerboseAction(f"${{N64_AUDIOCONV}} --wav-compress 3 -o {tgt_file} {src_file}",
                                               f"Converting {src_file} to {tgt_file}"))
