@@ -14,9 +14,10 @@
 
 import sys
 from platform import system
-from os import makedirs, environ, listdir
-from os.path import basename, isdir, join, exists
+from os import makedirs, environ, listdir, makedirs, walk
+from os.path import basename, isdir, join, exists, relpath, dirname
 from pathlib import Path
+import shutil
 
 from SCons.Script import (ARGUMENTS, COMMAND_LINE_TARGETS, AlwaysBuild,
                           Builder, Default, DefaultEnvironment, Copy)
@@ -46,6 +47,8 @@ env.Replace(
     MKDFSTOOL="mkdfs", # digital file system
     N64_FS_IMAGE_NAME="fs",
     PROJECT_DATA_DIR="assets", # folder for unconverted files
+    N64_AUDIOCONV="audioconv64",
+    N64_MKSPRITE="mksprite",
 
     ARFLAGS=["rc"],
 
@@ -63,6 +66,43 @@ environ["N64_INST"] = platform.get_package_dir("toolchain-gccmips64")
 # Allow user to override via pre:script
 if env.get("PROGNAME", "program") == "program":
     env.Replace(PROGNAME="firmware")
+
+def process_directory(target, source, env):
+    """ Custom builder function to process an entire source directory. """
+    src_dir = str(source[0])
+    tgt_dir = str(target[0])
+
+    print(f"Processing directory: {src_dir} -> {tgt_dir}")
+
+    # Ensure target directory exists
+    if exists(tgt_dir):
+        shutil.rmtree(tgt_dir)
+    makedirs(tgt_dir, exist_ok=True)
+
+    # Custom processing logic
+    for root, dirs, files in walk(src_dir):
+        rel_path = relpath(root, src_dir)
+        for file in files:
+            src_file = join(root, file)
+            if file.lower().endswith(".xm"):
+                tgt_file = join(tgt_dir, rel_path, file[:-3] + ".xm64")
+                env.Execute(env.VerboseAction(f"${{N64_AUDIOCONV}} -o {tgt_file} {src_file}",
+                                              f"Converting {src_file} to {tgt_file}"))
+            elif file.lower().endswith(".ym"):
+                tgt_file = join(tgt_dir, rel_path, file[:-3] + ".ym64")
+                env.Execute(env.VerboseAction(f"${{N64_AUDIOCONV}} -o {tgt_file} {src_file}",
+                                              f"Converting {src_file} to {tgt_file}"))
+            elif file.lower().endswith(".wav"):
+                tgt_file = join(tgt_dir, rel_path, file[:-4] + ".wav64")
+                env.Execute(env.VerboseAction(f"${{N64_AUDIOCONV}} --wav-compress 3 -o {tgt_file} {src_file}",
+                                              f"Converting {src_file} to {tgt_file}"))
+            else:
+                tgt_file = join(tgt_dir, rel_path, file)
+                makedirs(dirname(tgt_file), exist_ok=True)
+                shutil.copy2(src_file, tgt_file)
+                print(f"Copied: {src_file} -> {tgt_file}")
+
+    return None  # Must return None to indicate success in SCons
 
 env.Append(
     BUILDERS=dict(
@@ -148,6 +188,11 @@ env.Append(
             ]), "Building $TARGET"),
             suffix=".z64"
         ),
+        ConvertAssets=Builder(
+            action=process_directory,
+            source_factory=env.Dir,  # Source should be treated as a directory
+            target_factory=env.Dir,  # Target should also be a directory
+        ),
         DataToDfs=Builder(
             action=env.VerboseAction(" ".join([
                 '"$MKDFSTOOL"',
@@ -183,10 +228,11 @@ else:
     data_dir = join(env.subst("$PROJECT_DIR"), env.subst("$PROJECT_DATA_DIR"))
     # do we have files to build at all?
     if exists(data_dir) and isdir(data_dir) and len(listdir(data_dir)) != 0:
-        converted_assets = []
+        target_converted_assets = env.ConvertAssets(join("$BUILD_DIR", "filesystem"), [data_dir])
         asset_files = env.Glob(join("${PROJECT_DIR}", "${PROJECT_DATA_DIR}", "**/*"))
-        target_dfs = env.DataToDfs(join("$BUILD_DIR", "${N64_FS_IMAGE_NAME}"), [data_dir])
-        env.Requires(target_dfs, asset_files)
+        env.Requires(target_converted_assets, asset_files)
+        target_dfs = env.DataToDfs(join("$BUILD_DIR", "${N64_FS_IMAGE_NAME}"), target_converted_assets)
+        # env.Requires(target_dfs, asset_files)
         target_z64 = env.ElfToZ64WithDFS(join("$BUILD_DIR", "${PROGNAME}"), [target_stripped_compressed_elf, target_sym, target_dfs])
     else:
         target_z64 = env.ElfToZ64(join("$BUILD_DIR", "${PROGNAME}"), [target_stripped_compressed_elf, target_sym])
