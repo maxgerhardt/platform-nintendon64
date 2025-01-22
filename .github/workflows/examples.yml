@@ -13,6 +13,7 @@ jobs:
           - "examples/libdragon-audioplayer"
           - "examples/libdragon-controllertest"
           - "examples/libdragon-rspqdemo"
+          - "examples/libdragon-spritemap"
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
