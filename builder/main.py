@@ -80,9 +80,9 @@ def process_directory(target, source, env):
     makedirs(tgt_dir, exist_ok=True)
 
     # Retrieve custom conversion rules from platformio.ini
-    conv_rules = env.GetProjectOption("custom_conversions")
+    conv_rules = env.GetProjectOption("custom_conversions", "")
     custom_conversions = {}
-    if conv_rules:
+    if conv_rules != "":
         for line in conv_rules.strip().split("\n"):
             parts = [part.strip() for part in line.split(",")]
             if len(parts) == 3:
