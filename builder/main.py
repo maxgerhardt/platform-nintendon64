@@ -15,7 +15,7 @@
 import sys
 from platform import system
 from os import makedirs, environ, listdir, makedirs, walk
-from os.path import basename, isdir, join, exists, relpath, dirname
+from os.path import basename, isdir, join, exists, relpath, dirname, abspath
 from pathlib import Path
 import shutil
 
@@ -80,10 +80,10 @@ def process_directory(target, source, env):
     makedirs(tgt_dir, exist_ok=True)
 
     # Retrieve custom conversion rules from platformio.ini
-    conv_rules = env.GetProjectOption("custom_conversions", "")
+    conv_rules: str = env.GetProjectOption("custom_conversions", "")
     custom_conversions = {}
     if conv_rules != "":
-        for line in str(conv_rules).strip().split("\n"):
+        for line in conv_rules.strip().split("\n"):
             parts = [part.strip() for part in line.split(",", maxsplit=2)]
             if len(parts) == 3:
                 command_template = parts[2].strip()
@@ -100,8 +100,19 @@ def process_directory(target, source, env):
             if file_lower in custom_conversions:
                 target_ext, command_template = custom_conversions[file_lower]
                 tgt_file = join(tgt_dir, rel_path, file[:file.rfind(".")] + target_ext)
-                command = command_template.replace("$TARGETDIR", join(tgt_dir, rel_path)).replace("$TARGET", tgt_file).replace("$SOURCE", src_file)
-                env.Execute(env.VerboseAction(command, f"Converting {src_file} to {tgt_file}"))
+                if "$TARGETDIR" in command_template:
+                    output_dir = abspath(join(tgt_dir, rel_path))
+                    makedirs(output_dir, exist_ok=True)
+                    src_parent_dir = abspath(dirname(src_file))
+                    file_name = file
+                    command = command_template.replace("$TARGETDIR", output_dir).replace("$SOURCE", file_name)
+                    env.Execute(env.VerboseAction(
+                        f"cd {src_parent_dir} && {command}",
+                        f"Converting {src_file} to {output_dir}"
+                    ))
+                else:
+                    command = command_template.replace("$TARGET", tgt_file).replace("$SOURCE", src_file)
+                    env.Execute(env.VerboseAction(command, f"Converting {src_file} to {tgt_file}"))
             elif file_lower.endswith(".xm"):
                 tgt_file = join(tgt_dir, rel_path, file[:-3] + ".xm64")
                 env.Execute(env.VerboseAction(f"${{N64_AUDIOCONV}} -o {tgt_file} {src_file}",
@@ -114,10 +125,15 @@ def process_directory(target, source, env):
                 tgt_file = join(tgt_dir, rel_path, file[:-4] + ".wav64")
                 env.Execute(env.VerboseAction(f"${{N64_AUDIOCONV}} --wav-compress 3 -o {tgt_file} {src_file}",
                                               f"Converting {src_file} to {tgt_file}"))
-            # elif file_lower.endswith(".png"):
-            #     tgt_file = join(tgt_dir, rel_path, file[:-4] + ".sprite")
-            #     env.Execute(env.VerboseAction(f"${{N64_MKSPRITE}} -o {tgt_file} {src_file}",
-            #                                   f"Converting {src_file} to {tgt_file}"))
+            elif file_lower.endswith(".png"):
+                output_dir = abspath(join(tgt_dir, rel_path))
+                makedirs(output_dir, exist_ok=True)
+                src_parent_dir = abspath(dirname(src_file))
+                file_name = file
+                env.Execute(env.VerboseAction(
+                    f"cd {src_parent_dir} && ${{N64_MKSPRITE}} -o {output_dir} {file_name}",
+                    f"Converting {src_file} to {output_dir}"
+                ))
             else:
                 tgt_file = join(tgt_dir, rel_path, file)
                 makedirs(dirname(tgt_file), exist_ok=True)
