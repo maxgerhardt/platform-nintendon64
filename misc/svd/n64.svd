@@ -1,0 +1,754 @@
+<?xml version="1.0" ?>
+<device xmlns:xs="http://www.w3.org/2001/XMLSchema-instance" schemaVersion="1.1">
+    <name>Nintendo_64</name>
+    <version>1.0</version>
+    <description>Nintendo 64 system SVD file for the VR4300 CPU</description>
+    <addressUnitBits>32</addressUnitBits>
+    <width>32</width>
+    <cpu>
+        <name>OTHER</name>
+        <revision>r1p0</revision>
+        <endian>big</endian>
+        <mpuPresent>false</mpuPresent>
+        <fpuPresent>true</fpuPresent>
+        <nvicPrioBits>8</nvicPrioBits>
+        <vendorSystickConfig>false</vendorSystickConfig>
+    </cpu>
+    <peripherals>
+        <peripheral>
+            <name>MI</name>
+            <description>MIPS Interface Controller</description>
+            <baseAddress>0xA4300000</baseAddress>
+            <addressBlock>
+                <offset>0x0000</offset>
+                <size>0x2c</size>
+                <usage>registers</usage>
+            </addressBlock>
+            <registers>
+                <register>
+                    <name>MI_MODE</name>
+                    <description>MI Mode Register</description>
+                    <addressOffset>0x0</addressOffset>
+                    <size>32</size>
+                    <access>read-write</access>
+                    <fields>
+                        <field>
+                            <name>Upper</name>
+                            <description>Upper mode enabled</description>
+                            <bitOffset>9</bitOffset>
+                            <bitWidth>1</bitWidth>
+                        </field>
+                        <field>
+                            <name>EBus</name>
+                            <description>EBus mode enabled</description>
+                            <bitOffset>8</bitOffset>
+                            <bitWidth>1</bitWidth>
+                        </field>
+                        <field>
+                            <name>Repeat</name>
+                            <description>Repeat mode enabled</description>
+                            <bitOffset>7</bitOffset>
+                            <bitWidth>1</bitWidth>
+                        </field>
+                        <field>
+                            <name>RepeatCount</name>
+                            <description>Number of bytes (minus 1) to write in repeat mode</description>
+                            <bitOffset>0</bitOffset>
+                            <bitWidth>7</bitWidth>
+                        </field>
+                    </fields>
+                </register>
+                <register>
+                    <name>MI_VERSION</name>
+                    <description>MI Version Register</description>
+                    <addressOffset>0x4</addressOffset>
+                    <size>32</size>
+                    <access>read-only</access>
+                    <fields>
+                        <field>
+                            <name>RSP_VERSION</name>
+                            <description>RSP hardware version</description>
+                            <bitOffset>24</bitOffset>
+                            <bitWidth>8</bitWidth>
+                        </field>
+                        <field>
+                            <name>RDP_VERSION</name>
+                            <description>RDP hardware version</description>
+                            <bitOffset>16</bitOffset>
+                            <bitWidth>8</bitWidth>
+                        </field>
+                        <field>
+                            <name>RAC_VERSION</name>
+                            <description>RAC hardware version</description>
+                            <bitOffset>8</bitOffset>
+                            <bitWidth>8</bitWidth>
+                        </field>
+                        <field>
+                            <name>IO_VERSION</name>
+                            <description>IO hardware version</description>
+                            <bitOffset>0</bitOffset>
+                            <bitWidth>8</bitWidth>
+                        </field>
+                    </fields>
+                </register>
+                <register>
+                    <name>MI_INTERRUPT</name>
+                    <description>MI Interrupt Register</description>
+                    <addressOffset>0x8</addressOffset>
+                    <size>32</size>
+                    <access>read-write</access>
+                    <fields>
+                        <field>
+                            <name>SP</name>
+                            <description>SP Interrupt Mask</description>
+                            <bitOffset>0</bitOffset>
+                            <bitWidth>1</bitWidth>
+                        </field>
+                        <field>
+                            <name>SI</name>
+                            <description>SI Interrupt Mask</description>
+                            <bitOffset>1</bitOffset>
+                            <bitWidth>1</bitWidth>
+                        </field>
+                        <field>
+                            <name>AI</name>
+                            <description>AI Interrupt Mask</description>
+                            <bitOffset>2</bitOffset>
+                            <bitWidth>1</bitWidth>
+                        </field>
+                        <field>
+                            <name>VI</name>
+                            <description>VI Interrupt Mask</description>
+                            <bitOffset>3</bitOffset>
+                            <bitWidth>1</bitWidth>
+                        </field>
+                        <field>
+                            <name>PI</name>
+                            <description>PI Interrupt Mask</description>
+                            <bitOffset>4</bitOffset>
+                            <bitWidth>1</bitWidth>
+                        </field>
+                        <field>
+                            <name>DP</name>
+                            <description>DP Interrupt Mask</description>
+                            <bitOffset>5</bitOffset>
+                            <bitWidth>1</bitWidth>
+                        </field>
+                    </fields>
+                </register>
+                <register>
+                    <name>MI_MASK</name>
+                    <description>MI Mask Register</description>
+                    <addressOffset>0xc</addressOffset>
+                    <size>32</size>
+                    <access>read-write</access>
+                    <fields>
+                        <field>
+                            <name>SP</name>
+                            <description>SP Interrupt Mask</description>
+                            <bitOffset>0</bitOffset>
+                            <bitWidth>1</bitWidth>
+                        </field>
+                        <field>
+                            <name>SI</name>
+                            <description>SI Interrupt Mask</description>
+                            <bitOffset>1</bitOffset>
+                            <bitWidth>1</bitWidth>
+                        </field>
+                        <field>
+                            <name>AI</name>
+                            <description>AI Interrupt Mask</description>
+                            <bitOffset>2</bitOffset>
+                            <bitWidth>1</bitWidth>
+                        </field>
+                        <field>
+                            <name>VI</name>
+                            <description>VI Interrupt Mask</description>
+                            <bitOffset>3</bitOffset>
+                            <bitWidth>1</bitWidth>
+                        </field>
+                        <field>
+                            <name>PI</name>
+                            <description>PI Interrupt Mask</description>
+                            <bitOffset>4</bitOffset>
+                            <bitWidth>1</bitWidth>
+                        </field>
+                        <field>
+                            <name>DP</name>
+                            <description>DP Interrupt Mask</description>
+                            <bitOffset>5</bitOffset>
+                            <bitWidth>1</bitWidth>
+                        </field>
+                    </fields>
+                </register>
+            </registers>
+        </peripheral>
+        <peripheral>
+            <name>SI</name>
+            <description>Serial Interface</description>
+            <baseAddress>0xA4800000</baseAddress>
+            <addressBlock>
+                <offset>0x0000</offset>
+                <size>0x38</size>
+                <usage>registers</usage>
+            </addressBlock>
+            <registers>
+                <register>
+                    <name>SI_DRAM_ADDR</name>
+                    <description>Serial Interface DRAM Address</description>
+                    <addressOffset>0x0</addressOffset>
+                    <size>32</size>
+                    <access>read-write</access>
+                    <fields>
+                        <field>
+                            <name>DRAM_ADDR</name>
+                            <description>RDRAM address used in SI DMAs</description>
+                            <bitOffset>0</bitOffset>
+                            <bitWidth>24</bitWidth>
+                        </field>
+                    </fields>
+                </register>
+                <register>
+                    <name>SI_PIF_AD_RD64B</name>
+                    <description>Serial Interface PIF Address Read (64-bit)</description>
+                    <addressOffset>0x4</addressOffset>
+                    <size>32</size>
+                    <access>read-only</access>
+                    <fields>
+                        <field>
+                            <name>PIF_ADDR</name>
+                            <description>Offset in PIF_RAM/PIF_ROM where to fetch data</description>
+                            <bitOffset>0</bitOffset>
+                            <bitWidth>11</bitWidth>
+                        </field>
+                    </fields>
+                </register>
+                <register>
+                    <name>SI_PIF_AD_WR4B</name>
+                    <description>Serial Interface PIF Address Write (4-byte)</description>
+                    <addressOffset>0x8</addressOffset>
+                    <size>32</size>
+                    <access>read-write</access>
+                    <fields>
+                        <field>
+                            <name>DATA</name>
+                            <description>32-bit data to be transferred to PIF-RAM</description>
+                            <bitOffset>0</bitOffset>
+                            <bitWidth>32</bitWidth>
+                        </field>
+                    </fields>
+                </register>
+                <register>
+                    <name>SI_PIF_AD_WR64B</name>
+                    <description>Serial Interface PIF Address Write (64-bit)</description>
+                    <addressOffset>0x10</addressOffset>
+                    <size>32</size>
+                    <access>read-write</access>
+                    <fields>
+                        <field>
+                            <name>Unknown</name>
+                            <description>Unknown</description>
+                            <bitOffset>0</bitOffset>
+                            <bitWidth>32</bitWidth>
+                        </field>
+                    </fields>
+                </register>
+                <register>
+                    <name>SI_PIF_AD_RD4B</name>
+                    <description>Serial Interface PIF Address Read (4-byte)</description>
+                    <addressOffset>0x14</addressOffset>
+                    <size>32</size>
+                    <access>read-only</access>
+                    <fields>
+                        <field>
+                            <name>DATA</name>
+                            <description>32-bit data to be transferred to PIF-RAM</description>
+                            <bitOffset>0</bitOffset>
+                            <bitWidth>32</bitWidth>
+                        </field>
+                    </fields>
+                </register>
+                <register>
+                    <name>SI_STATUS</name>
+                    <description>Serial Interface Status Register</description>
+                    <addressOffset>0x18</addressOffset>
+                    <size>32</size>
+                    <access>read-write</access>
+                    <fields>
+                        <field>
+                            <name>INTERRUPT</name>
+                            <description>SI interrupt flag</description>
+                            <bitOffset>12</bitOffset>
+                            <bitWidth>1</bitWidth>
+                        </field>
+                        <field>
+                            <name>DMA_STATE</name>
+                            <description>Internal DMA state</description>
+                            <bitOffset>8</bitOffset>
+                            <bitWidth>4</bitWidth>
+                        </field>
+                        <field>
+                            <name>PCH_STATE</name>
+                            <description>Internal PIF channel state</description>
+                            <bitOffset>4</bitOffset>
+                            <bitWidth>4</bitWidth>
+                        </field>
+                        <field>
+                            <name>DMA_ERROR</name>
+                            <description>Set when overlapping DMA occurs</description>
+                            <bitOffset>3</bitOffset>
+                            <bitWidth>1</bitWidth>
+                        </field>
+                        <field>
+                            <name>READ_PENDING</name>
+                            <description>Unknown</description>
+                            <bitOffset>2</bitOffset>
+                            <bitWidth>1</bitWidth>
+                        </field>
+                        <field>
+                            <name>IO_BUSY</name>
+                            <description>Set when a direct memory write to PIF_RAM is in progress</description>
+                            <bitOffset>1</bitOffset>
+                            <bitWidth>1</bitWidth>
+                        </field>
+                        <field>
+                            <name>DMA_BUSY</name>
+                            <description>Set when a DMA is in progress</description>
+                            <bitOffset>0</bitOffset>
+                            <bitWidth>1</bitWidth>
+                        </field>
+                    </fields>
+                </register>
+            </registers>
+        </peripheral>
+        <peripheral>
+            <name>SP</name>
+            <description>Signal Processor (RSP)</description>
+            <baseAddress>0xA4040000</baseAddress>
+            <addressBlock>
+                <offset>0x0000</offset>
+                <size>0x3c</size>
+                <usage>registers</usage>
+            </addressBlock>
+            <registers>
+                <register>
+                    <name>SP_DMA_SPADDR</name>
+                    <description>Address in IMEM/DMEM for a DMA transfer</description>
+                    <addressOffset>0x0</addressOffset>
+                    <size>32</size>
+                    <access>read-write</access>
+                    <fields>
+                        <field>
+                            <name>MEM_BANK</name>
+                            <description>Bank accessed by the transfer</description>
+                            <bitOffset>12</bitOffset>
+                            <bitWidth>1</bitWidth>
+                        </field>
+                        <field>
+                            <name>MEM_ADDR</name>
+                            <description>DMEM or IMEM address used in SP DMAs</description>
+                            <bitOffset>0</bitOffset>
+                            <bitWidth>12</bitWidth>
+                        </field>
+                    </fields>
+                </register>
+                <register>
+                    <name>SP_DMA_RAMADDR</name>
+                    <description>Address in RDRAM for a DMA transfer</description>
+                    <addressOffset>0x4</addressOffset>
+                    <size>32</size>
+                    <access>read-write</access>
+                    <fields>
+                        <field>
+                            <name>DRAM_ADDR</name>
+                            <description>RDRAM address used in the DMA transfer</description>
+                            <bitOffset>0</bitOffset>
+                            <bitWidth>24</bitWidth>
+                        </field>
+                    </fields>
+                </register>
+                <register>
+                    <name>SP_DMA_RDLEN</name>
+                    <description>Length of a DMA transfer. Writing this register triggers a DMA transfer from RDRAM to IMEM/DMEM</description>
+                    <addressOffset>0x8</addressOffset>
+                    <size>32</size>
+                    <access>read-write</access>
+                    <fields>
+                        <field>
+                            <name>SKIP</name>
+                            <description>Number of bytes to skip in RDRAM after each row</description>
+                            <bitOffset>20</bitOffset>
+                            <bitWidth>12</bitWidth>
+                        </field>
+                        <field>
+                            <name>COUNT</name>
+                            <description>Number of rows to transfer minus 1</description>
+                            <bitOffset>12</bitOffset>
+                            <bitWidth>8</bitWidth>
+                        </field>
+                        <field>
+                            <name>RDLEN</name>
+                            <description>Number of bytes to transfer for each row minus 1</description>
+                            <bitOffset>0</bitOffset>
+                            <bitWidth>12</bitWidth>
+                        </field>
+                    </fields>
+                </register>
+                <register>
+                    <name>SP_DMA_WRLEN</name>
+                    <description>Length of a DMA transfer. Writing this register triggers a DMA transfer from IMEM/DMEM to RDRAM</description>
+                    <addressOffset>0xc</addressOffset>
+                    <size>32</size>
+                    <access>read-write</access>
+                    <fields>
+                        <field>
+                            <name>SKIP</name>
+                            <description>Number of bytes to skip in RDRAM after each row</description>
+                            <bitOffset>20</bitOffset>
+                            <bitWidth>12</bitWidth>
+                        </field>
+                        <field>
+                            <name>COUNT</name>
+                            <description>Number of rows to transfer minus 1</description>
+                            <bitOffset>12</bitOffset>
+                            <bitWidth>8</bitWidth>
+                        </field>
+                        <field>
+                            <name>WRLEN</name>
+                            <description>Number of bytes to transfer for each row minus 1</description>
+                            <bitOffset>0</bitOffset>
+                            <bitWidth>12</bitWidth>
+                        </field>
+                    </fields>
+                </register>
+                <register>
+                    <name>SP_STATUS</name>
+                    <description>RSP status register</description>
+                    <addressOffset>0x10</addressOffset>
+                    <size>32</size>
+                    <access>read-write</access>
+                    <fields>
+                        <field>
+                            <name>SIG&lt;n&gt;</name>
+                            <description>Status of the 8 custom bits that can be freely used to communicate state between VR4300 and RSP</description>
+                            <bitOffset>7</bitOffset>
+                            <bitWidth>8</bitWidth>
+                        </field>
+                        <field>
+                            <name>INTBREAK</name>
+                            <description>Trigger an MI interrupt when BREAK is run</description>
+                            <bitOffset>6</bitOffset>
+                            <bitWidth>1</bitWidth>
+                        </field>
+                        <field>
+                            <name>SSTEP</name>
+                            <description>Single-step mode activated</description>
+                            <bitOffset>5</bitOffset>
+                            <bitWidth>1</bitWidth>
+                        </field>
+                        <field>
+                            <name>IO_BUSY</name>
+                            <description>RSP accessing either DMEM or IMEM</description>
+                            <bitOffset>4</bitOffset>
+                            <bitWidth>1</bitWidth>
+                        </field>
+                        <field>
+                            <name>DMA_FULL</name>
+                            <description>DMA transfer pending flag</description>
+                            <bitOffset>3</bitOffset>
+                            <bitWidth>1</bitWidth>
+                        </field>
+                        <field>
+                            <name>DMA_BUSY</name>
+                            <description>DMA transfer in progress flag</description>
+                            <bitOffset>2</bitOffset>
+                            <bitWidth>1</bitWidth>
+                        </field>
+                        <field>
+                            <name>BROKE</name>
+                            <description>BREAK opcode executed</description>
+                            <bitOffset>1</bitOffset>
+                            <bitWidth>1</bitWidth>
+                        </field>
+                        <field>
+                            <name>HALTED</name>
+                            <description>RSP running status</description>
+                            <bitOffset>0</bitOffset>
+                            <bitWidth>1</bitWidth>
+                        </field>
+                    </fields>
+                </register>
+                <register>
+                    <name>SP_DMA_FULL</name>
+                    <description>Report whether there is a pending DMA transfer (mirror of DMA_FULL bit of SP_STATUS)</description>
+                    <addressOffset>0x14</addressOffset>
+                    <size>32</size>
+                    <access>read-write</access>
+                    <fields>
+                        <field>
+                            <name>DMA_FULL</name>
+                            <description>Mirror of DMA_FULL bit in SP_STATUS</description>
+                            <bitOffset>0</bitOffset>
+                            <bitWidth>1</bitWidth>
+                        </field>
+                    </fields>
+                </register>
+                <register>
+                    <name>SP_DMA_BUSY</name>
+                    <description>Report whether there is a DMA transfer in progress (mirror of DMA_BUSY bit of SP_STATUS)</description>
+                    <addressOffset>0x18</addressOffset>
+                    <size>32</size>
+                    <access>read-write</access>
+                    <fields>
+                        <field>
+                            <name>DMA_BUSY</name>
+                            <description>Mirror of DMA_BUSY bit in SP_STATUS</description>
+                            <bitOffset>0</bitOffset>
+                            <bitWidth>1</bitWidth>
+                        </field>
+                    </fields>
+                </register>
+                <register>
+                    <name>SP_SEMAPHORE</name>
+                    <description>Register to assist implementing a simple mutex between VR4300 and RSP</description>
+                    <addressOffset>0x1c</addressOffset>
+                    <size>32</size>
+                    <access>read-write</access>
+                    <fields>
+                        <field>
+                            <name>SEMAPHORE</name>
+                            <description>Semaphore bit for hardware-assisted mutex</description>
+                            <bitOffset>0</bitOffset>
+                            <bitWidth>1</bitWidth>
+                        </field>
+                    </fields>
+                </register>
+            </registers>
+        </peripheral>
+        <peripheral>
+            <name>PI</name>
+            <description>Peripheral Interface</description>
+            <baseAddress>0xA4600000</baseAddress>
+            <addressBlock>
+                <offset>0x0000</offset>
+                <size>0x50</size>
+                <usage>registers</usage>
+            </addressBlock>
+            <registers>
+                <register>
+                    <name>PI_DRAM_ADDR</name>
+                    <description>Base address of RDRAM for PI DMAs</description>
+                    <addressOffset>0x0</addressOffset>
+                    <size>32</size>
+                    <access>read-write</access>
+                    <fields>
+                        <field>
+                            <name>DRAM_ADDR</name>
+                            <description>Base address of RDRAM for PI DMAs</description>
+                            <bitOffset>1</bitOffset>
+                            <bitWidth>23</bitWidth>
+                        </field>
+                    </fields>
+                </register>
+                <register>
+                    <name>PI_CART_ADDR</name>
+                    <description>Base address of the PI bus for PI DMAs</description>
+                    <addressOffset>0x4</addressOffset>
+                    <size>32</size>
+                    <access>read-write</access>
+                    <fields>
+                        <field>
+                            <name>CART_ADDR</name>
+                            <description>Base address of the PI bus for PI DMAs</description>
+                            <bitOffset>1</bitOffset>
+                            <bitWidth>31</bitWidth>
+                        </field>
+                    </fields>
+                </register>
+                <register>
+                    <name>PI_RD_LEN</name>
+                    <description>Number of bytes, minus one, to be transferred from RDRAM to the PI bus</description>
+                    <addressOffset>0x8</addressOffset>
+                    <size>32</size>
+                    <access>read-write</access>
+                    <fields>
+                        <field>
+                            <name>RD_LEN</name>
+                            <description>Number of bytes, minus one, to be transferred from RDRAM to the PI bus</description>
+                            <bitOffset>0</bitOffset>
+                            <bitWidth>24</bitWidth>
+                        </field>
+                    </fields>
+                </register>
+                <register>
+                    <name>PI_WR_LEN</name>
+                    <description>Number of bytes, minus one, to be transferred from the PI bus, into RDRAM</description>
+                    <addressOffset>0xc</addressOffset>
+                    <size>32</size>
+                    <access>read-write</access>
+                    <fields>
+                        <field>
+                            <name>WR_LEN</name>
+                            <description>Number of bytes, minus one, to be transferred from the PI bus, into RDRAM</description>
+                            <bitOffset>0</bitOffset>
+                            <bitWidth>24</bitWidth>
+                        </field>
+                    </fields>
+                </register>
+                <register>
+                    <name>PI_STATUS</name>
+                    <description>Status of the PI</description>
+                    <addressOffset>0x10</addressOffset>
+                    <size>32</size>
+                    <access>read-write</access>
+                    <fields>
+                        <field>
+                            <name>Interrupt</name>
+                            <description>DMA completed</description>
+                            <bitOffset>3</bitOffset>
+                            <bitWidth>1</bitWidth>
+                        </field>
+                        <field>
+                            <name>DMA_error</name>
+                            <description>DMA error</description>
+                            <bitOffset>2</bitOffset>
+                            <bitWidth>1</bitWidth>
+                        </field>
+                        <field>
+                            <name>IO_busy</name>
+                            <description>I/O busy</description>
+                            <bitOffset>1</bitOffset>
+                            <bitWidth>1</bitWidth>
+                        </field>
+                        <field>
+                            <name>DMA_busy</name>
+                            <description>DMA is busy</description>
+                            <bitOffset>0</bitOffset>
+                            <bitWidth>1</bitWidth>
+                        </field>
+                    </fields>
+                </register>
+                <register>
+                    <name>PI_BSD_DOM1_LAT</name>
+                    <description>Latency value for DOM1</description>
+                    <addressOffset>0x14</addressOffset>
+                    <size>32</size>
+                    <access>read-write</access>
+                    <fields>
+                        <field>
+                            <name>LAT</name>
+                            <description>Number of RCP cycles, minus one, before the first read or write may start</description>
+                            <bitOffset>0</bitOffset>
+                            <bitWidth>8</bitWidth>
+                        </field>
+                    </fields>
+                </register>
+                <register>
+                    <name>PI_BSD_DOM1_PWD</name>
+                    <description>Pulse width value for DOM1</description>
+                    <addressOffset>0x18</addressOffset>
+                    <size>32</size>
+                    <access>read-write</access>
+                    <fields>
+                        <field>
+                            <name>PWD</name>
+                            <description>Number of RCP cycles, minus one, the /RD or /WR signals are held low</description>
+                            <bitOffset>0</bitOffset>
+                            <bitWidth>8</bitWidth>
+                        </field>
+                    </fields>
+                </register>
+                <register>
+                    <name>PI_BSD_DOM1_PGS</name>
+                    <description>Page size value for DOM1</description>
+                    <addressOffset>0x1c</addressOffset>
+                    <size>32</size>
+                    <access>read-write</access>
+                    <fields>
+                        <field>
+                            <name>PGS</name>
+                            <description>Number of bytes that can be sequentially read/written on the bus before sending the next base address</description>
+                            <bitOffset>0</bitOffset>
+                            <bitWidth>4</bitWidth>
+                        </field>
+                    </fields>
+                </register>
+                <register>
+                    <name>PI_BSD_DOM1_RLS</name>
+                    <description>Release value for DOM1</description>
+                    <addressOffset>0x20</addressOffset>
+                    <size>32</size>
+                    <access>read-write</access>
+                    <fields>
+                        <field>
+                            <name>RLS</name>
+                            <description>Number of RCP cycles, minus one, that the /RD or /WR signals are held high between each 16-bits of data</description>
+                            <bitOffset>0</bitOffset>
+                            <bitWidth>2</bitWidth>
+                        </field>
+                    </fields>
+                </register>
+                <register>
+                    <name>PI_BSD_DOM2_LAT</name>
+                    <description>Latency value for DOM2</description>
+                    <addressOffset>0x24</addressOffset>
+                    <size>32</size>
+                    <access>read-write</access>
+                    <fields>
+                        <field>
+                            <name>LAT</name>
+                            <description>Number of RCP cycles, minus one, before the first read or write may start</description>
+                            <bitOffset>0</bitOffset>
+                            <bitWidth>8</bitWidth>
+                        </field>
+                    </fields>
+                </register>
+                <register>
+                    <name>PI_BSD_DOM2_PWD</name>
+                    <description>Pulse width value for DOM2</description>
+                    <addressOffset>0x28</addressOffset>
+                    <size>32</size>
+                    <access>read-write</access>
+                    <fields>
+                        <field>
+                            <name>PWD</name>
+                            <description>Number of RCP cycles, minus one, the /RD or /WR signals are held low</description>
+                            <bitOffset>0</bitOffset>
+                            <bitWidth>8</bitWidth>
+                        </field>
+                    </fields>
+                </register>
+                <register>
+                    <name>PI_BSD_DOM2_PGS</name>
+                    <description>Page size value for DOM2</description>
+                    <addressOffset>0x2c</addressOffset>
+                    <size>32</size>
+                    <access>read-write</access>
+                    <fields>
+                        <field>
+                            <name>PGS</name>
+                            <description>Number of bytes that can be sequentially read/written on the bus before sending the next base address</description>
+                            <bitOffset>0</bitOffset>
+                            <bitWidth>4</bitWidth>
+                        </field>
+                    </fields>
+                </register>
+                <register>
+                    <name>PI_BSD_DOM2_RLS</name>
+                    <description>Release value for DOM2</description>
+                    <addressOffset>0x30</addressOffset>
+                    <size>32</size>
+                    <access>read-write</access>
+                    <fields>
+                        <field>
+                            <name>RLS</name>
+                            <description>Number of RCP cycles, minus one, that the /RD or /WR signals are held high between each 16-bits of data</description>
+                            <bitOffset>0</bitOffset>
+                            <bitWidth>2</bitWidth>
+                        </field>
+                    </fields>
+                </register>
+            </registers>
+        </peripheral>
+    </peripherals>
+</device>

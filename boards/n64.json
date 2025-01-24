@@ -7,7 +7,8 @@
     "debug": {
         "onboard_tools": [
             "ares"
-        ]
+        ],
+        "svd_path": "n64.svd"
     },
     "frameworks": [
         "libdragon"

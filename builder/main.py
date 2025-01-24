@@ -83,8 +83,8 @@ def process_directory(target, source, env):
     conv_rules = env.GetProjectOption("custom_conversions", "")
     custom_conversions = {}
     if conv_rules != "":
-        for line in conv_rules.strip().split("\n"):
-            parts = [part.strip() for part in line.split(",")]
+        for line in str(conv_rules).strip().split("\n"):
+            parts = [part.strip() for part in line.split(",", maxsplit=2)]
             if len(parts) == 3:
                 command_template = parts[2].strip()
                 if "$SOURCE" not in command_template:
@@ -100,7 +100,7 @@ def process_directory(target, source, env):
             if file_lower in custom_conversions:
                 target_ext, command_template = custom_conversions[file_lower]
                 tgt_file = join(tgt_dir, rel_path, file[:file.rfind(".")] + target_ext)
-                command = command_template.replace("$TARGET", tgt_file).replace("$SOURCE", src_file)
+                command = command_template.replace("$TARGETDIR", join(tgt_dir, rel_path)).replace("$TARGET", tgt_file).replace("$SOURCE", src_file)
                 env.Execute(env.VerboseAction(command, f"Converting {src_file} to {tgt_file}"))
             elif file_lower.endswith(".xm"):
                 tgt_file = join(tgt_dir, rel_path, file[:-3] + ".xm64")
@@ -114,6 +114,10 @@ def process_directory(target, source, env):
                 tgt_file = join(tgt_dir, rel_path, file[:-4] + ".wav64")
                 env.Execute(env.VerboseAction(f"${{N64_AUDIOCONV}} --wav-compress 3 -o {tgt_file} {src_file}",
                                               f"Converting {src_file} to {tgt_file}"))
+            # elif file_lower.endswith(".png"):
+            #     tgt_file = join(tgt_dir, rel_path, file[:-4] + ".sprite")
+            #     env.Execute(env.VerboseAction(f"${{N64_MKSPRITE}} -o {tgt_file} {src_file}",
+            #                                   f"Converting {src_file} to {tgt_file}"))
             else:
                 tgt_file = join(tgt_dir, rel_path, file)
                 makedirs(dirname(tgt_file), exist_ok=True)
