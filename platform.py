@@ -17,6 +17,7 @@ import platform
 from platformio.public import PlatformBase
 from platformio import util
 import sys
+import os.path
 
 class Nintendon64Platform(PlatformBase):
 
@@ -78,15 +79,14 @@ class Nintendon64Platform(PlatformBase):
                     "server": {
                         "package": "tool-ares",
                         "arguments": [
-                            "C:/Users/Max/temp/pio-n64/ctest/.pio/build/n64/firmware.z64"
-                            #DefaultEnvironment().subst("${BUILD_DIR}/${PROGNAME}.z64")
-                       ],
+                            # We fill in the path to the .z64 in configure_debug_session
+                        ],
                         "executable": "ares"
                     },
                     "onboard": link in debug.get("onboard_tools", []),
                     "init_cmds": reset_cmds + init_cmds,
-                    #"load_cmds": "preload", # make it "upload" the file via Ares, but this actually starts the GDB server, too
-                    "port": "localhost:9123"
+                    "port": "localhost:9123",
+                    "ready_pattern": "Loaded firmware" # we want to connect as quickly as pssible
                 }
             debug["tools"][link]["onboard"] = link in debug.get("onboard_tools", [])
             debug["tools"][link]["default"] = link in debug.get("default_tools", [])
@@ -94,7 +94,12 @@ class Nintendon64Platform(PlatformBase):
         board.manifest["debug"] = debug
         return board
 
-    # nothing to do, we can't properly processs the "speed" option since we're using an emulator
     def configure_debug_session(self, debug_config):
-        return
- 
+        server_executable = (debug_config.server or {}).get("executable", "").lower()
+        # Ares needs the z64 as an argument
+        if "ares" in server_executable:
+            # program path is for the .elf, but we know the .z64 is in the same folder
+            path_to_z64 = os.path.splitext(debug_config.program_path)[0] + ".z64"
+            debug_config.server["arguments"].extend(
+                [path_to_z64]
+            )
