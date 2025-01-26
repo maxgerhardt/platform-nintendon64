@@ -61,6 +61,7 @@ class Nintendon64Platform(PlatformBase):
             # ares automatically reports arch = mips:4000
             #"set arch mips:4300",
             "set remotetimeout unlimited",
+            "handle SIGTRAP nostop noprint", # older ares generate this exception when doing a floating point calculation..
             "target remote $DEBUG_PORT",
             "$INIT_BREAK",
             # don't load the executable into the emulator because it's already started with the ROM
