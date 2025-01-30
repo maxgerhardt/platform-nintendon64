@@ -12,6 +12,7 @@ jobs:
         example:
           - "examples/libdragon-audioplayer"
           - "examples/libdragon-controllertest"
+          - "examples/libdragon-overlays-dso"
           - "examples/libdragon-rdpqdemo"
           - "examples/libdragon-rspqdemo"
           - "examples/libdragon-spritemap"

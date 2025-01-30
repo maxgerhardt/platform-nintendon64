@@ -49,6 +49,9 @@ env.Replace(
     PROJECT_DATA_DIR="assets", # folder for unconverted files
     N64_AUDIOCONV="audioconv64",
     N64_MKSPRITE="mksprite",
+    N64_DSO="n64dso",
+    N64_DSOEXTERN="n64dso-extern",
+    N64_DSOMSYM="n64dso-msym",
 
     ARFLAGS=["rc"],
 
@@ -78,6 +81,13 @@ def process_directory(target, source, env):
     if exists(tgt_dir):
         shutil.rmtree(tgt_dir)
     makedirs(tgt_dir, exist_ok=True)
+
+    # copy the simple files if we have them
+    if len(source) > 1:
+        for s in source[1:]:
+            tgt_file = join(tgt_dir, basename(str(s)))
+            shutil.copy2(str(s), tgt_dir)
+            print(f"Copied: {s} -> {tgt_file}")
 
     # Retrieve custom conversion rules from platformio.ini
     conv_rules: str = env.GetProjectOption("custom_conversions", "")
@@ -142,6 +152,111 @@ def process_directory(target, source, env):
 
     return None  # Must return None to indicate success in SCons
 
+def build_custom_dsos(env):
+    custom_dsos = str(env.GetProjectOption("custom_dsos", "")).strip()
+    print("Got custom DSOS: " + str(custom_dsos))
+    if not custom_dsos:
+        return []
+
+    dso_targets = []
+    for line in custom_dsos.splitlines():
+        output_file, sources = line.split(":", maxsplit=1)
+        output_file = output_file.strip()
+        sources = [src.strip() for src in sources.split()]
+
+        # Define the build directory for object files
+        obj_dir = join("$BUILD_DIR", "dsos", output_file.replace(".dso", ""))
+
+        # Clone environment and configure DSO-specific flags
+        dso_env = env.Clone()
+        dso_env.Append(
+            CCFLAGS=["-mno-gpopt", "-DN64_DSO"],
+            CPPPATH=join("$PROJECT_DIR", "include"),
+        )
+
+        platform = env.PioPlatform()
+        FRAMEWORK_DIR = platform.get_package_dir("framework-libdragon") or ""
+        dso_env.Replace(
+            LINK="mips64-elf-ld",
+            LINKFLAGS=[
+                "--emit-relocs",
+                "--unresolved-symbols=ignore-all",
+                "--nmagic",
+                "-L",
+                '"%s"' % FRAMEWORK_DIR,
+                "-T", "dso.ld"
+            ],
+            LIBS=[],
+            _LIBFLAGS="",
+        )
+
+        # Explicitly create object files in $BUILD_DIR
+        object_files = []
+        for src in sources:
+            src_path = join("$PROJECT_DIR", src)
+            obj_name = join(obj_dir, src.split("/")[-1] + ".o")  # Ensure unique object name
+            obj_target = dso_env.Object(target=obj_name, source=src_path)
+            object_files.append(obj_target)
+
+        # Generate ELF file for the DSO
+        dso_elf_target = dso_env.Program(
+            target=join("$BUILD_DIR", output_file.replace(".dso", ".elf")),
+            source=object_files,  # Use manually created object files
+        )
+
+        # Convert ELF to DSO
+        dso_target = env.DsoBuilder(
+            target=join("$BUILD_DIR", output_file),
+            source=dso_elf_target,
+        )
+        dso_targets.append(dso_target)
+
+    return dso_targets
+
+def dso_builder_action(target, source, env):
+    dso_elf = str(source[0])  # The program ELF file
+    dso_file = str(target[0])  # The output DSO file
+    dso_sym = dso_file.replace(".dso", ".sym")  # The corresponding sym file
+    elf_dir = dirname(dso_elf)
+    # Define the absolute path to the filesystem folder
+    out_dir = join(env.subst("$BUILD_DIR"))
+
+    # Ensure the filesystem folder exists
+    if not exists(out_dir):
+        makedirs(out_dir)
+
+    actions = [
+        env.VerboseAction(
+            f"${{SIZETOOL}} -G {dso_elf}",
+            f"Checking size of {dso_elf}"),
+        # Generate the DSO file
+        env.VerboseAction(
+            f"cd {elf_dir} && ${{N64_DSO}} -o {out_dir} -c 1 {basename(dso_elf)}",
+            f"Creating DSO {dso_file} from ELF {dso_elf}"),
+        # Generate the .sym file
+        env.VerboseAction(" ".join([
+            "${N64SYM}",
+            dso_elf,
+            dso_sym
+        ]), f"Generating sym file {dso_sym} from ELF {dso_elf}")
+    ]
+
+    # Execute all actions
+    return env.Execute(actions)
+
+def copy_dsos_to_filesystem(target, source, env):
+    """Custom builder to copy DSO files into the filesystem directory."""
+    filesystem_dir = str(target[0])
+
+    for src in source:
+        dso_src = str(src)
+        dso_dest = join(filesystem_dir, env.subst("$BUILD_DIR"), relpath(dso_src, start=env.subst("$BUILD_DIR")))
+        makedirs(dirname(dso_dest), exist_ok=True)
+        shutil.copy2(dso_src, dso_dest)
+        print(f"Copied DSO: {dso_src} -> {dso_dest}")
+
+    return None  # SCons requires None for success
+
 env.Append(
     BUILDERS=dict(
         ElfToBin=Builder(
@@ -162,6 +277,14 @@ env.Append(
             ]), "Building $TARGET"),
             suffix=".elf.sym"
         ),
+        ElfToMSym=Builder(
+            action=env.VerboseAction(" ".join([
+                "${N64_DSOMSYM}",
+                "$SOURCES",
+                "$TARGET"
+            ]), "Building $TARGET"),
+            suffix=".msym"
+        ),
         ElfToStrippedElf=Builder(
             action=env.VerboseAction(" ".join([
                 "$STRIP",
@@ -178,8 +301,6 @@ env.Append(
                 Copy('${TARGET}', '${SOURCE}'),
                 env.VerboseAction(" ".join([
                 "$N64ELFCOMPRESS",
-                #"-o",
-                #"${BUILD_DIR}",
                 "-c",
                 "1", # compression level
                 "$TARGET"
@@ -226,6 +347,29 @@ env.Append(
             ]), "Building $TARGET"),
             suffix=".z64"
         ),
+        ElfToZ64WithDFSAndMSYS=Builder(
+            action=env.VerboseAction(" ".join([
+                "$N64TOOL",
+                "--title",
+                '"%s"' % "Controller Test",
+                "--toc",
+                "--output",
+                "$TARGET",
+                "--align",
+                "256",
+                "${SOURCES[0]}", # stripped + compressed elf file
+                "--align",
+                "8",
+                "${SOURCES[1]}", # symbol file
+                "--align",
+                "8",
+                "${SOURCES[2]}", # msym file
+                "--align",
+                "16",
+                "${SOURCES[3]}" # dfs file (filesystem)
+            ]), "Building $TARGET"),
+            suffix=".z64"
+        ),
         ConvertAssets=Builder(
             action=process_directory,
             source_factory=env.Dir,  # Source should be treated as a directory
@@ -239,7 +383,25 @@ env.Append(
             ]), "Building file system image from '$SOURCE' directory to $TARGET"),
             source_factory=env.Dir,
             suffix=".dfs"
-        )
+        ),
+        CopyDsosToFilesystem=Builder(
+            action=copy_dsos_to_filesystem,
+            source_factory=env.File,
+            target_factory=env.Dir,
+        ),
+        DsoBuilder=Builder(
+            action=dso_builder_action,
+            suffix=".dso",
+        ),
+        DsoExternsBuilder=Builder(
+            action=env.VerboseAction(" ".join([
+                "${N64_DSOEXTERN}",
+                "-o",
+                "$TARGET",
+                "$SOURCES"
+            ]), "Building DSO externals $TARGET"),
+            suffix=".externs"
+        ),
     )
 )
 
@@ -262,18 +424,56 @@ else:
     target_sym = env.ElfToSym(join("$BUILD_DIR", "${PROGNAME}"), target_elf)
     target_stripped_elf = env.ElfToStrippedElf(join("$BUILD_DIR", "${PROGNAME}"), target_elf)
     target_stripped_compressed_elf = env.StrippedElfToCompressedElf(join("$BUILD_DIR", "${PROGNAME}"), target_stripped_elf)
-    # filesystem
+
+    # Filesystem handling
     data_dir = join(env.subst("$PROJECT_DIR"), env.subst("$PROJECT_DATA_DIR"))
-    # do we have files to build at all?
-    if exists(data_dir) and isdir(data_dir) and len(listdir(data_dir)) != 0:
-        target_converted_assets = env.ConvertAssets(join("$BUILD_DIR", "filesystem"), [data_dir])
-        asset_files = env.Glob(join("${PROJECT_DIR}", "${PROJECT_DATA_DIR}", "**/*"))
-        env.Requires(target_converted_assets, asset_files)
-        target_dfs = env.DataToDfs(join("$BUILD_DIR", "${N64_FS_IMAGE_NAME}"), target_converted_assets)
-        # env.Requires(target_dfs, asset_files)
-        target_z64 = env.ElfToZ64WithDFS(join("$BUILD_DIR", "${PROGNAME}"), [target_stripped_compressed_elf, target_sym, target_dfs])
+    filesystem_dir = join("$BUILD_DIR", "filesystem")
+    custom_dsos = build_custom_dsos(env)
+
+    data_dir_exists = exists(data_dir) and isdir(data_dir) and len(listdir(data_dir)) != 0
+    has_custom_dsos = bool(custom_dsos)
+
+    if data_dir_exists or has_custom_dsos:
+        asset_sources = []
+        
+        if data_dir_exists:
+            asset_sources.append(data_dir)
+        
+        if has_custom_dsos:
+            asset_sources.extend(custom_dsos)
+
+        target_converted_assets = env.ConvertAssets(filesystem_dir, asset_sources)
+        
+        asset_files = env.Glob(join("${PROJECT_DIR}", "${PROJECT_DATA_DIR}", "**/*")) if data_dir_exists else []
+        if data_dir_exists:
+            env.Requires(target_converted_assets, asset_files)
+
+        if has_custom_dsos:
+            target_dso_externs = env.DsoExternsBuilder(join("${BUILD_DIR}", "${PROGNAME}.externs"), custom_dsos)
+            env.Append(LINKFLAGS=["-Wl,-T", str(target_dso_externs[0])])
+            target_msym = env.ElfToMSym(join("$BUILD_DIR", "${PROGNAME}"), target_elf)
+
+        target_dfs = env.DataToDfs(join("$BUILD_DIR", "${N64_FS_IMAGE_NAME}"), [target_converted_assets])
+
+        if data_dir_exists:
+            env.Requires(target_dfs, asset_files)
+
+        if has_custom_dsos:
+            target_z64 = env.ElfToZ64WithDFSAndMSYS(
+                join("$BUILD_DIR", "${PROGNAME}"),
+                [target_stripped_compressed_elf, target_sym, target_msym, target_dfs]
+            )
+            env.Requires(target_z64, target_dso_externs)
+        else:
+            target_z64 = env.ElfToZ64WithDFS(
+                join("$BUILD_DIR", "${PROGNAME}"),
+                [target_stripped_compressed_elf, target_sym, target_dfs]
+            )
     else:
-        target_z64 = env.ElfToZ64(join("$BUILD_DIR", "${PROGNAME}"), [target_stripped_compressed_elf, target_sym])
+        target_z64 = env.ElfToZ64(
+            join("$BUILD_DIR", "${PROGNAME}"),
+            [target_stripped_compressed_elf, target_sym]
+        )
 
     env.Depends(target_z64, "checkprogsize")
 
