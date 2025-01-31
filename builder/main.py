@@ -14,13 +14,14 @@
 
 import sys
 from platform import system
-from os import makedirs, environ, listdir, makedirs, walk
+from os import makedirs, environ, listdir, makedirs, walk, sep
 from os.path import basename, isdir, isfile, join, exists, relpath, dirname, abspath
 from pathlib import Path
 import shutil
+import glob
 
 from SCons.Script import (ARGUMENTS, COMMAND_LINE_TARGETS, AlwaysBuild,
-                          Builder, Default, DefaultEnvironment, Copy)
+                          Builder, Default, DefaultEnvironment, Copy, Scanner)
 
 from platformio.public import list_serial_ports
 
@@ -71,25 +72,18 @@ if env.get("PROGNAME", "program") == "program":
     env.Replace(PROGNAME="firmware")
 
 def process_directory(target, source, env):
-    """ Custom builder function to process an entire source directory. """
-    tgt_dir = str(target[0])
+    env.Depends(target, source)
+    tgt_dir = abspath(str(target[0]))
 
     # Ensure target directory exists
     if exists(tgt_dir):
         shutil.rmtree(tgt_dir)
     makedirs(tgt_dir, exist_ok=True)
 
-    # copy the simple files if we have them
-    for s in source:
-        if isfile(str(s)):
-            tgt_file = join(tgt_dir, basename(str(s)))
-            shutil.copy2(str(s), tgt_dir)
-            print(f"Copied: {s} -> {tgt_file}")
-
     # Retrieve custom conversion rules from platformio.ini
     conv_rules: str = env.GetProjectOption("custom_conversions", "")
     custom_conversions = {}
-    if conv_rules != "":
+    if conv_rules:
         for line in conv_rules.strip().split("\n"):
             parts = [part.strip() for part in line.split(",", maxsplit=2)]
             if len(parts) == 3:
@@ -98,64 +92,60 @@ def process_directory(target, source, env):
                     command_template += " $SOURCE"
                 custom_conversions[parts[0].lower()] = (parts[1].strip(), command_template)
 
-    # Custom processing logic
+    def process_file(src_file, tgt_dir):
+        """ Process a single file based on conversion rules or copy if no rule applies. """
+        file_name = basename(src_file)
+        file_lower = file_name.lower()
+        output_dir = tgt_dir
+        makedirs(output_dir, exist_ok=True)
+
+        if file_lower in custom_conversions:
+            target_ext, command_template = custom_conversions[file_lower]
+            tgt_file = join(output_dir, file_name[:file_name.rfind(".")] + target_ext)
+            src_parent_dir = abspath(dirname(src_file))
+            command = command_template.replace("$TARGETDIR", output_dir).replace("$TARGET", tgt_file).replace("$SOURCE", file_name)
+            env.Execute(env.VerboseAction(
+                f"cd {src_parent_dir} && {command}",
+                f"Converting {src_file} to {tgt_file}"
+            ))
+        elif file_lower.endswith(".xm"):
+            tgt_file = join(output_dir, file_name[:-3] + ".xm64")
+            env.Execute(env.VerboseAction(f"${{N64_AUDIOCONV}} -o {tgt_file} {src_file}",
+                                          f"Converting {src_file} to {tgt_file}"))
+        elif file_lower.endswith(".ym"):
+            tgt_file = join(output_dir, file_name[:-3] + ".ym64")
+            env.Execute(env.VerboseAction(f"${{N64_AUDIOCONV}} -o {tgt_file} {src_file}",
+                                          f"Converting {src_file} to {tgt_file}"))
+        elif file_lower.endswith(".wav"):
+            tgt_file = join(output_dir, file_name[:-4] + ".wav64")
+            env.Execute(env.VerboseAction(f"${{N64_AUDIOCONV}} --wav-compress 3 -o {tgt_file} {src_file}",
+                                          f"Converting {src_file} to {tgt_file}"))
+        elif file_lower.endswith(".png"):
+            tgt_file = join(output_dir, file_name[:-4] + ".sprite")
+            env.Execute(env.VerboseAction(
+                f"cd {dirname(src_file)} && ${{N64_MKSPRITE}} -o {output_dir} {file_name}",
+                f"Converting {src_file} to {tgt_file}"
+            ))
+        else:
+            tgt_file = join(output_dir, file_name)
+            shutil.copy2(src_file, tgt_file)
+            print(f"Copied: {src_file} -> {tgt_file}")
+        return tgt_file
+
+    # Process all source elements
     for s in source:
-        src_dir = str(s)
-        if not isdir(src_dir):
-            continue
-        for root, dirs, files in walk(src_dir):
-            rel_path = relpath(root, src_dir)
-            for file in files:
-                src_file = join(root, file)
-                file_lower = file.lower()
-                if file_lower in custom_conversions:
-                    target_ext, command_template = custom_conversions[file_lower]
-                    tgt_file = join(tgt_dir, rel_path, file[:file.rfind(".")] + target_ext)
-                    if "$TARGETDIR" in command_template:
-                        output_dir = abspath(join(tgt_dir, rel_path))
-                        makedirs(output_dir, exist_ok=True)
-                        src_parent_dir = abspath(dirname(src_file))
-                        file_name = file
-                        command = command_template.replace("$TARGETDIR", output_dir).replace("$SOURCE", file_name)
-                        env.Execute(env.VerboseAction(
-                            f"cd {src_parent_dir} && {command}",
-                            f"Converting {src_file} to {output_dir}"
-                        ))
-                    else:
-                        command = command_template.replace("$TARGET", tgt_file).replace("$SOURCE", src_file)
-                        env.Execute(env.VerboseAction(command, f"Converting {src_file} to {tgt_file}"))
-                elif file_lower.endswith(".xm"):
-                    tgt_file = join(tgt_dir, rel_path, file[:-3] + ".xm64")
-                    env.Execute(env.VerboseAction(f"${{N64_AUDIOCONV}} -o {tgt_file} {src_file}",
-                                                f"Converting {src_file} to {tgt_file}"))
-                elif file_lower.endswith(".ym"):
-                    tgt_file = join(tgt_dir, rel_path, file[:-3] + ".ym64")
-                    env.Execute(env.VerboseAction(f"${{N64_AUDIOCONV}} -o {tgt_file} {src_file}",
-                                                f"Converting {src_file} to {tgt_file}"))
-                elif file_lower.endswith(".wav"):
-                    tgt_file = join(tgt_dir, rel_path, file[:-4] + ".wav64")
-                    env.Execute(env.VerboseAction(f"${{N64_AUDIOCONV}} --wav-compress 3 -o {tgt_file} {src_file}",
-                                                f"Converting {src_file} to {tgt_file}"))
-                elif file_lower.endswith(".png"):
-                    output_dir = abspath(join(tgt_dir, rel_path))
-                    makedirs(output_dir, exist_ok=True)
-                    src_parent_dir = abspath(dirname(src_file))
-                    file_name = file
-                    env.Execute(env.VerboseAction(
-                        f"cd {src_parent_dir} && ${{N64_MKSPRITE}} -o {output_dir} {file_name}",
-                        f"Converting {src_file} to {output_dir}"
-                    ))
-                else:
-                    tgt_file = join(tgt_dir, rel_path, file)
-                    makedirs(dirname(tgt_file), exist_ok=True)
-                    shutil.copy2(src_file, tgt_file)
-                    print(f"Copied: {src_file} -> {tgt_file}")
+        s_path = str(s)
+        if isfile(s_path):
+            tgt = process_file(s_path, tgt_dir)
+        elif isdir(s_path):
+            for root, _, files in walk(s_path):
+                for file in files:
+                    tgt = process_file(join(root, file), tgt_dir)
 
     return None  # Must return None to indicate success in SCons
 
 def build_custom_dsos(env):
     custom_dsos = str(env.GetProjectOption("custom_dsos", "")).strip()
-    print("Got custom DSOS: " + str(custom_dsos))
     if not custom_dsos:
         return []
 
@@ -207,7 +197,7 @@ def build_custom_dsos(env):
 
         # Convert ELF to DSO
         dso_target = env.DsoBuilder(
-            target=join("$BUILD_DIR", output_file),
+            target=[join("$BUILD_DIR", output_file), join("$BUILD_DIR", output_file + ".sym")],
             source=dso_elf_target,
         )
         dso_targets.append(dso_target)
@@ -217,7 +207,7 @@ def build_custom_dsos(env):
 def dso_builder_action(target, source, env):
     dso_elf = str(source[0])  # The program ELF file
     dso_file = str(target[0])  # The output DSO file
-    dso_sym = dso_file + ".sym" # The corresponding sym file
+    dso_sym = str(target[1]) # The corresponding sym file
     elf_dir = dirname(dso_elf)
     # Define the absolute path to the filesystem folder
     out_dir = join(env.subst("$BUILD_DIR"))
@@ -244,19 +234,6 @@ def dso_builder_action(target, source, env):
 
     # Execute all actions
     return env.Execute(actions)
-
-def copy_dsos_to_filesystem(target, source, env):
-    """Custom builder to copy DSO files into the filesystem directory."""
-    filesystem_dir = str(target[0])
-
-    for src in source:
-        dso_src = str(src)
-        dso_dest = join(filesystem_dir, env.subst("$BUILD_DIR"), relpath(dso_src, start=env.subst("$BUILD_DIR")))
-        makedirs(dirname(dso_dest), exist_ok=True)
-        shutil.copy2(dso_src, dso_dest)
-        print(f"Copied DSO: {dso_src} -> {dso_dest}")
-
-    return None  # SCons requires None for success
 
 env.Append(
     BUILDERS=dict(
@@ -385,14 +362,8 @@ env.Append(
             source_factory=env.Dir,
             suffix=".dfs"
         ),
-        CopyDsosToFilesystem=Builder(
-            action=copy_dsos_to_filesystem,
-            source_factory=env.File,
-            target_factory=env.Dir,
-        ),
         DsoBuilder=Builder(
             action=dso_builder_action,
-            suffix=".dso",
         ),
         DsoExternsBuilder=Builder(
             action=env.VerboseAction(" ".join([
@@ -436,36 +407,40 @@ else:
 
     if data_dir_exists or has_custom_dsos:
         asset_sources = []
-        
+
         if data_dir_exists:
             asset_sources.append(data_dir)
-        
+
         if has_custom_dsos:
-            asset_sources.extend(custom_dsos)
-            # Also add debug symbols to the filesystem
-            asset_sources.extend([str(x[0]) + ".sym" for x in custom_dsos])
+            # add the .dso as well as .dso.sym files to the filesytem, but flatten array
+            asset_sources.extend([x for pair in custom_dsos for x in pair])
 
         target_converted_assets = env.ConvertAssets(filesystem_dir, asset_sources)
-        
-        asset_files = env.Glob(join("${PROJECT_DIR}", "${PROJECT_DATA_DIR}", "**/*")) if data_dir_exists else []
-        env.Requires(target_converted_assets, asset_files)
+
+        target_dfs = env.DataToDfs(join("$BUILD_DIR", "${N64_FS_IMAGE_NAME}"), target_converted_assets)
+
+        # Track changes and rebuild filesystem if any asset file changes, as-needed. 
+        # TODO: This doesn't work at all. It's worked-around by AlwaysBuild() below.
+        # The target_converted_assets / env.ConvertAssets() build doesn't properly know about
+        # what output files it will produce, it might need an emitter function to properly track
+        # its targets and dependencies.
+        AlwaysBuild(target_converted_assets)
+        AlwaysBuild(target_dfs)
 
         if has_custom_dsos:
-            target_dso_externs = env.DsoExternsBuilder(join("${BUILD_DIR}", "${PROGNAME}.externs"), custom_dsos)
+            # the .externs file is only built from the .dso files, not .dso.sym files
+            target_dso_externs = env.DsoExternsBuilder(
+                join("${BUILD_DIR}", "${PROGNAME}.externs"), 
+                [x for pair in custom_dsos for x in pair if str(x).endswith(".dso")]
+            )
             env.Append(LINKFLAGS=["-Wl,-T", str(target_dso_externs[0])])
+            # .externs file must exist before elf is linked!! (because it's a linker script)
+            env.Requires(target_elf, target_dso_externs)
             target_msym = env.ElfToMSym(join("$BUILD_DIR", "${PROGNAME}"), target_elf)
-
-        target_dfs = env.DataToDfs(join("$BUILD_DIR", "${N64_FS_IMAGE_NAME}"), [target_converted_assets])
-
-        if data_dir_exists:
-            env.Requires(target_dfs, asset_files)
-
-        if has_custom_dsos:
             target_z64 = env.ElfToZ64WithDFSAndMSYS(
                 join("$BUILD_DIR", "${PROGNAME}"),
                 [target_stripped_compressed_elf, target_sym, target_msym, target_dfs]
             )
-            env.Requires(target_z64, target_dso_externs)
         else:
             target_z64 = env.ElfToZ64WithDFS(
                 join("$BUILD_DIR", "${PROGNAME}"),
@@ -478,6 +453,7 @@ else:
         )
 
     env.Depends(target_z64, "checkprogsize")
+    AlwaysBuild(target_z64)
 
 AlwaysBuild(env.Alias("nobuild", target_z64))
 target_buildprog = env.Alias("buildprog", target_z64, target_z64)
