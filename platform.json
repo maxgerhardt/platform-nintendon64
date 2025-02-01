@@ -23,6 +23,10 @@
     "libdragon": {
       "package": "framework-libdragon",
       "script": "builder/frameworks/libdragon.py"
+    },
+    "libdragon-preview": {
+      "package": "framework-libdragon",
+      "script": "builder/frameworks/libdragon.py"
     }
   },
   "packages": {

@@ -16,6 +16,7 @@ jobs:
           - "examples/libdragon-rdpqdemo"
           - "examples/libdragon-rspqdemo"
           - "examples/libdragon-spritemap"
+          - "examples/libdragonpreview-brew-volley"
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4

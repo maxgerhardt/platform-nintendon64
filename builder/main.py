@@ -53,6 +53,8 @@ env.Replace(
     N64_DSO="n64dso",
     N64_DSOEXTERN="n64dso-extern",
     N64_DSOMSYM="n64dso-msym",
+    N64_MKFONT="mkfont", # note: Only available in preview branch.
+    N64_MKMODEL="mkmodel", # note: Only available in preview branch.
 
     ARFLAGS=["rc"],
 
@@ -104,10 +106,24 @@ def process_directory(target, source, env):
             tgt_file = join(output_dir, file_name[:file_name.rfind(".")] + target_ext)
             src_parent_dir = abspath(dirname(src_file))
             command = command_template.replace("$TARGETDIR", output_dir).replace("$TARGET", tgt_file).replace("$SOURCE", file_name)
-            env.Execute(env.VerboseAction(
-                f"cd {src_parent_dir} && {command}",
-                f"Converting {src_file} to {tgt_file}"
-            ))
+            if "${N64_MKFONT}" in command:
+                # the mkfont binary is special: it expects mksprite to be available at
+                # $N64_INST/bin/mksprite
+                # instead of patching the mkfont source code (which we can!), we just clone the env
+                # and set the N64_INST variable to the right folder.
+                # note that this only works because it doesn't access any compiler bins like mips64-elf-gcc
+                mkfont_env = env.Clone()
+                mkfont_env["ENV"]["N64_INST"] = platform.get_package_dir("tool-n64")
+                mkfont_env.Execute(env.VerboseAction(
+                    f"cd {src_parent_dir} && {command}",
+                    f"(Font) Converting {src_file} to {tgt_file}"
+                ))
+                mkfont_env["ENV"]["N64_INST"] = platform.get_package_dir("toolchain-gccmips64")
+            else:
+                env.Execute(env.VerboseAction(
+                    f"cd {src_parent_dir} && {command}",
+                    f"Converting {src_file} to {tgt_file}"
+                ))
         elif file_lower.endswith(".xm"):
             tgt_file = join(output_dir, file_name[:-3] + ".xm64")
             env.Execute(env.VerboseAction(f"${{N64_AUDIOCONV}} -o {tgt_file} {src_file}",

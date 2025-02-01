@@ -11,7 +11,8 @@
         "svd_path": "n64.svd"
     },
     "frameworks": [
-        "libdragon"
+        "libdragon",
+        "libdragon-preview"
     ],
     "name": "Nintendo N64",
     "upload": {

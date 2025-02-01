@@ -30,6 +30,10 @@ class Nintendon64Platform(PlatformBase):
         # Use the same string identifier as seen in "pio system info" and registry
         sys_type = util.get_systype()
         frameworks = variables.get("pioframework", [])
+        if "libdragon-preview" in frameworks:
+            self.packages["framework-libdragon"]["version"] = "https://github.com/maxgerhardt/libdragon.git#preview"
+            # todo generalize this for all other architectures as well
+            self.packages["tool-n64"]["version"] = "https://github.com/maxgerhardt/pio-tool-n64.git#windows_x64_preview"
         return super().configure_default_packages(variables, targets)
 
     def get_boards(self, id_=None):
