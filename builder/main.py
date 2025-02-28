@@ -518,6 +518,18 @@ else:
 
 AlwaysBuild(env.Alias("upload", upload_source, upload_actions))
 
+# additional project tasks
+if upload_protocol == "sc64":
+    sc64_tool = join(platform.get_package_dir("tool-summercart64") or "", "sc64deployer")
+    env.AddPlatformTarget(
+        name="sc64_reset",
+        dependencies=None,
+        actions=[
+            env.VerboseAction("\"%s\" reset" % (sc64_tool), "Resetting SummerCart64")
+        ],
+        title="Reset SummerCart64"
+    )
+
 #
 # Default targets
 #
