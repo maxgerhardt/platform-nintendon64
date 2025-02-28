@@ -20,7 +20,8 @@
         "maximum_size": 8388608,
         "protocol": "ares",
         "protocols": [
-            "ares"
+            "ares",
+            "sc64"
         ]
     },
     "url": "https://en.wikipedia.org/wiki/Nintendo_64",

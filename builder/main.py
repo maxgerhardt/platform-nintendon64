@@ -500,7 +500,15 @@ if upload_protocol == "ares":
         UPLOADCMD='$UPLOADER $UPLOADERFLAGS "$SOURCE"'
     )
     upload_actions = [env.VerboseAction("$UPLOADCMD", "Uploading $SOURCE")]
-
+if upload_protocol == "sc64":
+    env.Replace(
+        UPLOADER="sc64deployer",
+        UPLOADERFLAGS=[
+            "--reboot"
+        ],
+        UPLOADCMD='$UPLOADER upload $UPLOADERFLAGS "$SOURCE"'
+    )
+    upload_actions = [env.VerboseAction("$UPLOADCMD", "Uploading $SOURCE")]
 # custom upload tool
 elif upload_protocol == "custom":
     upload_actions = [env.VerboseAction("$UPLOADCMD", "Uploading $SOURCE")]

@@ -51,6 +51,12 @@
       "optional": false,
       "owner": "platformio",
       "version": "https://github.com/maxgerhardt/pio-ares.git#windows_x64"
+    },
+    "tool-summercart64":{
+      "type": "uploader",
+      "optional": false,
+      "owner": "platformio",
+      "version": "https://github.com/maxgerhardt/pio-sc64.git#windows_x64"
     }
   }
 }
