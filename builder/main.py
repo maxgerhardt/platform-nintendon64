@@ -529,6 +529,14 @@ if upload_protocol == "sc64":
         ],
         title="Reset SummerCart64"
     )
+    env.AddPlatformTarget(
+        name="sc64_sd_upload",
+        dependencies=upload_source,
+        actions=[
+            env.VerboseAction("\"%s\" sd upload \"%s\"" % (sc64_tool, str(target_z64[0])), "Uploading to SD (SummerCart64)")
+        ],
+        title="Upload to SD (SC64)"
+    )
 
 #
 # Default targets
