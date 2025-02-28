@@ -500,7 +500,7 @@ if upload_protocol == "ares":
         UPLOADCMD='$UPLOADER $UPLOADERFLAGS "$SOURCE"'
     )
     upload_actions = [env.VerboseAction("$UPLOADCMD", "Uploading $SOURCE")]
-if upload_protocol == "sc64":
+elif upload_protocol == "sc64":
     env.Replace(
         UPLOADER="sc64deployer",
         UPLOADERFLAGS=[
